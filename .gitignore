@@ -1,0 +1,109 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+.hypothesis/
+
+# Virtual Environments
+backend/venv/
+frontend/venv/
+
+# ChromaDB and Vector Databases
+chroma_db/
+*.db
+*.sqlite3
+*.sqlite
+
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+secrets.json
+
+# Analytics and Logs
+*.log
+logs/
+analytics/query_log.jsonl
+backend/analytics/query_log.jsonl
+
+# Data files (if sensitive or large)
+# Uncomment if you don't want to track data files
+# Property_data.csv
+# data/
+# *.csv
+# *.json
+# ground_truth.json
+
+# IDE and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*.bak
+.spyderproject
+.spyproject
+.ropeproject
+*.sublime-project
+*.sublime-workspace
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+*.dockerignore
+
+# Testing
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+
+# Documentation builds
+docs/_build/
+site/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+*.pyc
+*.pyo

@@ -1,0 +1,304 @@
+{
+  "test_queries": [
+    {
+      "id": 1,
+      "category": "price_statistics",
+      "query": "What's the average price of 2 bedroom apartments?",
+      "expected_answer_type": "numerical_average",
+      "ground_truth_key": "2_bed_avg_price",
+      "ground_truth_value": 1983.43,
+      "tolerance": 100,
+      "evaluation_criteria": "Check if answer contains price around £1983 with tolerance of ±£100"
+    },
+    {
+      "id": 2,
+      "category": "price_statistics",
+      "query": "What is the average price of studio apartments?",
+      "expected_answer_type": "numerical_average",
+      "ground_truth_key": "studio_avg_price",
+      "ground_truth_value": 1443.95,
+      "tolerance": 100,
+      "evaluation_criteria": "Check if answer mentions price around £1444 for studios"
+    },
+    {
+      "id": 3,
+      "category": "filtered_search",
+      "query": "Find properties under £1000 with 2 bathrooms",
+      "expected_answer_type": "property_list",
+      "ground_truth_key": "under_1000_2bath",
+      "ground_truth_value": 2386,
+      "tolerance": 50,
+      "evaluation_criteria": "Should retrieve properties matching both price and bathroom criteria"
+    },
+    {
+      "id": 4,
+      "category": "crime_analysis",
+      "query": "Which area has the highest crime score?",
+      "expected_answer_type": "location_name",
+      "ground_truth_key": "highest_crime_area",
+      "ground_truth_value": "Aberdeen City",
+      "tolerance": null,
+      "evaluation_criteria": "Answer should mention Aberdeen City or top crime areas"
+    },
+    {
+      "id": 5,
+      "category": "comparative_analysis",
+      "query": "Compare prices between terraced and detached houses",
+      "expected_answer_type": "comparison",
+      "ground_truth_keys": ["terraced_avg_price", "detached_avg_price"],
+      "ground_truth_values": [2101.57, 4304.84],
+      "tolerance": 150,
+      "evaluation_criteria": "Should show detached is more expensive than terraced, with approximate values"
+    },
+    {
+      "id": 6,
+      "category": "extremes",
+      "query": "What are the cheapest studio apartments?",
+      "expected_answer_type": "property_list",
+      "ground_truth_key": "cheapest_studio_price",
+      "ground_truth_value": 435,
+      "tolerance": 50,
+      "evaluation_criteria": "Should list cheapest studios with prices under £500"
+    },
+    {
+      "id": 7,
+      "category": "location_based",
+      "query": "What's the average price in Westminster?",
+      "expected_answer_type": "numerical_average",
+      "ground_truth_key": "Westminster_avg_price",
+      "ground_truth_value": 8930.95,
+      "tolerance": 500,
+      "evaluation_criteria": "Should mention Westminster prices around £8900-£9400"
+    },
+    {
+      "id": 8,
+      "category": "property_type",
+      "query": "How many flat properties are available?",
+      "expected_answer_type": "count",
+      "ground_truth_key": "flat_count",
+      "ground_truth_value": 43913,
+      "tolerance": 1000,
+      "evaluation_criteria": "Should mention count around 43,000-45,000 flats"
+    },
+    {
+      "id": 9,
+      "category": "price_range",
+      "query": "How many properties are under £1000?",
+      "expected_answer_type": "count",
+      "ground_truth_key": "properties_under_1000",
+      "ground_truth_value": 32327,
+      "tolerance": 1000,
+      "evaluation_criteria": "Should state approximately 32,000 properties under £1000"
+    },
+    {
+      "id": 10,
+      "category": "bedroom_analysis",
+      "query": "What's the average price for 4 bedroom properties?",
+      "expected_answer_type": "numerical_average",
+      "ground_truth_key": "4_bed_avg_price",
+      "ground_truth_value": 4048.85,
+      "tolerance": 200,
+      "evaluation_criteria": "Should mention price around £4000-£4200"
+    },
+    {
+      "id": 11,
+      "category": "bathroom_analysis",
+      "query": "What's the average price for properties with 3 bathrooms?",
+      "expected_answer_type": "numerical_average",
+      "ground_truth_key": "3_bath_avg_price",
+      "ground_truth_value": 6096.06,
+      "tolerance": 300,
+      "evaluation_criteria": "Should state price around £5800-£6400"
+    },
+    {
+      "id": 12,
+      "category": "property_type",
+      "query": "What's the average price of detached houses?",
+      "expected_answer_type": "numerical_average",
+      "ground_truth_key": "detached_avg_price",
+      "ground_truth_value": 4304.84,
+      "tolerance": 200,
+      "evaluation_criteria": "Should mention detached house prices around £4100-£4500"
+    },
+    {
+      "id": 13,
+      "category": "extremes",
+      "query": "What is the most expensive property and where is it located?",
+      "expected_answer_type": "property_with_location",
+      "ground_truth_keys": ["most_expensive_price", "most_expensive_location"],
+      "ground_truth_values": [608333, "Westminster"],
+      "tolerance": null,
+      "evaluation_criteria": "Should mention Westminster and very high price (£600k+)"
+    },
+    {
+      "id": 14,
+      "category": "filtered_search",
+      "query": "Find 3 bedroom houses under £3000",
+      "expected_answer_type": "property_list",
+      "ground_truth_key": "3_bed_avg_price",
+      "ground_truth_value": 2674.83,
+      "tolerance": null,
+      "evaluation_criteria": "Should retrieve 3 bed properties under £3000"
+    },
+    {
+      "id": 15,
+      "category": "location_based",
+      "query": "What's the average price in Birmingham?",
+      "expected_answer_type": "numerical_average",
+      "ground_truth_key": "Birmingham_avg_price",
+      "ground_truth_value": 1243.71,
+      "tolerance": 100,
+      "evaluation_criteria": "Should state Birmingham average around £1200-£1300"
+    },
+    {
+      "id": 16,
+      "category": "comparative_analysis",
+      "query": "Are apartments cheaper than flats?",
+      "expected_answer_type": "comparison",
+      "ground_truth_keys": ["apartment_avg_price", "flat_avg_price"],
+      "ground_truth_values": [2295.65, 2505.46],
+      "tolerance": 100,
+      "evaluation_criteria": "Should indicate apartments are cheaper than flats on average"
+    },
+    {
+      "id": 17,
+      "category": "bedroom_analysis",
+      "query": "What's the price difference between 1 and 2 bedroom properties?",
+      "expected_answer_type": "numerical_comparison",
+      "ground_truth_keys": ["1_bed_avg_price", "2_bed_avg_price"],
+      "ground_truth_values": [1528.61, 1983.43],
+      "tolerance": 50,
+      "evaluation_criteria": "Should calculate difference of approximately £455"
+    },
+    {
+      "id": 18,
+      "category": "property_type",
+      "query": "How many semi-detached houses are available?",
+      "expected_answer_type": "count",
+      "ground_truth_key": "semi-detached_count",
+      "ground_truth_value": 10444,
+      "tolerance": 500,
+      "evaluation_criteria": "Should mention around 10,000-11,000 semi-detached properties"
+    },
+    {
+      "id": 19,
+      "category": "location_based",
+      "query": "Which area has the most properties?",
+      "expected_answer_type": "location_name",
+      "ground_truth_key": "Westminster_count",
+      "ground_truth_value": 5872,
+      "tolerance": null,
+      "evaluation_criteria": "Should mention Westminster or top location"
+    },
+    {
+      "id": 20,
+      "category": "bathroom_analysis",
+      "query": "What's the most common number of bathrooms?",
+      "expected_answer_type": "count",
+      "ground_truth_key": "1_bath_count",
+      "ground_truth_value": 88732,
+      "tolerance": null,
+      "evaluation_criteria": "Should indicate 1 bathroom is most common"
+    },
+    {
+      "id": 21,
+      "category": "extremes",
+      "query": "What's the price range for studio apartments?",
+      "expected_answer_type": "range",
+      "ground_truth_keys": ["cheapest_studio_price", "most_expensive_studio_price"],
+      "ground_truth_values": [0, 433333],
+      "tolerance": null,
+      "evaluation_criteria": "Should mention wide range from low to very high prices"
+    },
+    {
+      "id": 22,
+      "category": "filtered_search",
+      "query": "Show me 2 bedroom properties with 2 bathrooms",
+      "expected_answer_type": "property_list",
+      "ground_truth_key": null,
+      "ground_truth_value": null,
+      "tolerance": null,
+      "evaluation_criteria": "Should retrieve properties matching both criteria"
+    },
+    {
+      "id": 23,
+      "category": "comparative_analysis",
+      "query": "What's more expensive - 3 bedroom or 4 bedroom properties?",
+      "expected_answer_type": "comparison",
+      "ground_truth_keys": ["3_bed_avg_price", "4_bed_avg_price"],
+      "ground_truth_values": [2674.83, 4048.85],
+      "tolerance": 100,
+      "evaluation_criteria": "Should correctly state 4 bedroom is more expensive"
+    },
+    {
+      "id": 24,
+      "category": "location_based",
+      "query": "What's the average price in Kensington and Chelsea?",
+      "expected_answer_type": "numerical_average",
+      "ground_truth_key": "Kensington and Chelsea_avg_price",
+      "ground_truth_value": 7945.39,
+      "tolerance": 500,
+      "evaluation_criteria": "Should state price around £7500-£8500"
+    },
+    {
+      "id": 25,
+      "category": "property_type",
+      "query": "Are there any bungalows available and what's their average price?",
+      "expected_answer_type": "count_and_price",
+      "ground_truth_keys": ["bungalow_count", "bungalow_avg_price"],
+      "ground_truth_values": [1257, 1549.99],
+      "tolerance": 100,
+      "evaluation_criteria": "Should mention bungalow availability and average price around £1550"
+    },
+    {
+      "id": 26,
+      "category": "complex_query",
+      "query": "I want a family home with at least 3 bedrooms under £3000 in a safe area",
+      "expected_answer_type": "property_list",
+      "ground_truth_key": null,
+      "ground_truth_value": null,
+      "tolerance": null,
+      "evaluation_criteria": "Should retrieve 3+ bedroom properties under £3000 with low crime scores"
+    },
+    {
+      "id": 27,
+      "category": "descriptive_query",
+      "query": "I'm looking for a cozy apartment for a single person, budget around £1500",
+      "expected_answer_type": "property_list",
+      "ground_truth_key": "1_bed_avg_price",
+      "ground_truth_value": 1528.61,
+      "tolerance": null,
+      "evaluation_criteria": "Should suggest 1 bedroom or studio apartments around £1500"
+    },
+    {
+      "id": 28,
+      "category": "extremes",
+      "query": "What are the top 5 most expensive areas?",
+      "expected_answer_type": "location_list",
+      "ground_truth_keys": ["Westminster_avg_price", "Kensington and Chelsea_avg_price"],
+      "ground_truth_values": [8930.95, 7945.39],
+      "tolerance": null,
+      "evaluation_criteria": "Should include Westminster and Kensington in top expensive areas"
+    },
+    {
+      "id": 29,
+      "category": "affordability",
+      "query": "What can I get for £2000 per month?",
+      "expected_answer_type": "property_list",
+      "ground_truth_key": "2_bed_avg_price",
+      "ground_truth_value": 1983.43,
+      "tolerance": null,
+      "evaluation_criteria": "Should suggest 2 bedroom properties as they average around £2000"
+    },
+    {
+      "id": 30,
+      "category": "overall_stats",
+      "query": "What's the overall average rent across all properties?",
+      "expected_answer_type": "numerical_average",
+      "ground_truth_key": "overall_avg_price",
+      "ground_truth_value": 2423.38,
+      "tolerance": 100,
+      "evaluation_criteria": "Should state overall average around £2300-£2500"
+    }
+  ]
+}
