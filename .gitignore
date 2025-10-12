@@ -45,6 +45,8 @@ secrets.json
 logs/
 analytics/query_log.jsonl
 backend/analytics/query_log.jsonl
+analytics/conversations/
+backend/analytics/conversations/
 
 # Data files (if sensitive or large)
 # Uncomment if you don't want to track data files
@@ -96,6 +98,7 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *.cover
+test_conversations/
 
 # Documentation builds
 docs/_build/

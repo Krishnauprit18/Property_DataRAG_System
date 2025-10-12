@@ -21,6 +21,11 @@ This system allows users to query property listings using natural language and r
 - ✅ Interactive web interface
 - ✅ 147,000+ property records
 - ✅ Real-time statistics and analytics
+- ✅ **💬 Conversational Memory & Context** - NEW!
+  - Multi-turn conversations with memory
+  - Context-aware follow-up questions
+  - Session management and history tracking
+  - Natural conversation flow
 
 ## 🚀 Quick Start
 
@@ -96,13 +101,20 @@ Frontend will open automatically at: http://localhost:8501
 
 Try these example queries:
 
+### Initial Queries:
 - "What's the average price of 3 bedroom homes?"
 - "Find properties under £1000 with 2+ bathrooms"
 - "Which area has the highest crime score?"
 - "Show me the cheapest studio apartments"
 - "Compare prices between terraced and detached houses"
-- "What are the most expensive properties in London?"
-- "Find 2 bedroom apartments with low flood risk"
+
+### 💬 Follow-up Queries (with Conversational Memory):
+- **After asking about properties:** "What about cheaper ones?"
+- **After location query:** "Show me those in Manchester instead"
+- **After bedroom query:** "How about 3 bedrooms?"
+- **Refinement:** "Which of those has the lowest crime score?"
+
+> **Note:** The system remembers your conversation! Try asking follow-up questions naturally.
 
 ## 🏗️ Project Structure
 
@@ -112,13 +124,22 @@ Property_DataRAG_System/
 │   ├── main.py                 # FastAPI server
 │   ├── data_ingestion.py       # Data loading & preprocessing
 │   ├── vector_store.py         # ChromaDB vector database
-│   ├── llm_handler.py          # Gemini LLM integration
-│   ├── rag_pipeline.py         # RAG orchestration
-│   └── chroma_db/              # Vector database storage
+│   ├── llm_handler.py          # Gemini LLM integration (context-aware)
+│   ├── rag_pipeline.py         # RAG orchestration with memory
+│   ├── conversation_manager.py # 💬 Conversation memory NEW!
+│   ├── query_analytics.py      # Analytics & monitoring
+│   ├── chroma_db/              # Vector database storage
+│   └── analytics/
+│       ├── query_log.jsonl     # Query logs
+│       └── conversations/      # 💬 Session storage NEW!
 ├── frontend/
-│   └── app.py                  # Streamlit web interface
+│   └── app.py                  # Streamlit web interface (with chat)
 ├── scripts/
 │   └── load_data.py            # Data loading script
+├── tests/
+│   └── test_conversation_memory.py  # 💬 Conversation tests NEW!
+├── docs/
+│   └── CONVERSATIONAL_MEMORY.md     # 💬 Feature docs NEW!
 ├── Property_data.csv           # Property dataset (147K records)
 ├── requirements.txt            # Python dependencies
 ├── .env.example                # Environment variables template
@@ -129,14 +150,23 @@ Property_DataRAG_System/
 
 ### Backend API (http://localhost:8000)
 
+#### Core Endpoints:
 - `GET /` - API information
 - `GET /health` - Health check
 - `GET /stats` - Database statistics
-- `POST /query` - Query properties (main endpoint)
+- `POST /query` - Query properties (main endpoint with conversation support)
 - `GET /search?q=query` - Simple search
+
+#### 💬 Conversation Endpoints (NEW):
+- `POST /conversation/new` - Create new conversation session
+- `GET /conversation/{session_id}/history` - Get conversation history
+- `GET /conversation/{session_id}/context` - Get session context
+- `DELETE /conversation/{session_id}` - Clear conversation
+- `GET /conversation/stats` - Get conversation statistics
 
 ### Example API Request
 
+#### Basic Query:
 ```bash
 curl -X POST "http://localhost:8000/query" \
   -H "Content-Type: application/json" \
@@ -145,6 +175,26 @@ curl -X POST "http://localhost:8000/query" \
     "n_results": 5,
     "max_price": 2000,
     "bedrooms": 2
+  }'
+```
+
+#### 💬 Query with Conversation Context:
+```bash
+# First query
+curl -X POST "http://localhost:8000/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "Show me 2 bedroom apartments in London",
+    "n_results": 5
+  }'
+
+# Follow-up query (using session_id from first response)
+curl -X POST "http://localhost:8000/query" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "What about cheaper ones?",
+    "n_results": 5,
+    "session_id": "abc-123-def-456"
   }'
 ```
 

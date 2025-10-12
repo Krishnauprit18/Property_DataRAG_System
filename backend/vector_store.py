@@ -95,18 +95,28 @@ class PropertyVectorStore:
             # Build where clause for filtering
             where_clause = None
             if filters:
-                where_clause = {}
+                # ChromaDB requires using $and for multiple conditions on same field
+                conditions = []
+                
+                # Price filters
                 if 'min_price' in filters:
-                    where_clause['price'] = {'$gte': filters['min_price']}
+                    conditions.append({'price': {'$gte': filters['min_price']}})
                 if 'max_price' in filters:
-                    if 'price' in where_clause:
-                        where_clause['price']['$lte'] = filters['max_price']
-                    else:
-                        where_clause['price'] = {'$lte': filters['max_price']}
+                    conditions.append({'price': {'$lte': filters['max_price']}})
+                
+                # Bedroom filter (exact match)
                 if 'bedrooms' in filters:
-                    where_clause['bedrooms'] = filters['bedrooms']
+                    conditions.append({'bedrooms': filters['bedrooms']})
+                
+                # Bathroom filter (minimum)
                 if 'bathrooms' in filters:
-                    where_clause['bathrooms'] = {'$gte': filters['bathrooms']}
+                    conditions.append({'bathrooms': {'$gte': filters['bathrooms']}})
+                
+                # Build where clause
+                if len(conditions) == 1:
+                    where_clause = conditions[0]
+                elif len(conditions) > 1:
+                    where_clause = {'$and': conditions}
 
             results = self.collection.query(
                 query_texts=[query],
