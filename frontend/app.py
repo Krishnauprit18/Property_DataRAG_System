@@ -1,12 +1,13 @@
 """
 Streamlit Frontend for Property RAG System
-Interactive web interface for querying property data
+Interactive web interface with conversational memory
 """
 
 import streamlit as st
 import requests
 import os
 from dotenv import load_dotenv
+from datetime import datetime
 
 # Load environment variables from project root
 from pathlib import Path
@@ -80,8 +81,8 @@ def get_stats():
         return None
 
 
-def query_properties(query, n_results=5, filters=None):
-    """Query the backend API"""
+def query_properties(query, n_results=5, filters=None, session_id=None):
+    """Query the backend API with conversation support"""
     try:
         payload = {
             "query": query,
@@ -90,6 +91,9 @@ def query_properties(query, n_results=5, filters=None):
 
         if filters:
             payload.update(filters)
+        
+        if session_id:
+            payload["session_id"] = session_id
 
         response = requests.post(
             f"{BACKEND_URL}/query",
@@ -105,10 +109,64 @@ def query_properties(query, n_results=5, filters=None):
         return {"error": str(e)}
 
 
+def get_conversation_history(session_id):
+    """Get conversation history for a session"""
+    try:
+        response = requests.get(
+            f"{BACKEND_URL}/conversation/{session_id}/history",
+            timeout=10
+        )
+        if response.status_code == 200:
+            return response.json()
+        return None
+    except Exception as e:
+        print(f"Error fetching history: {e}")
+        return None
+
+
+def create_new_conversation():
+    """Create a new conversation session"""
+    try:
+        response = requests.post(
+            f"{BACKEND_URL}/conversation/new",
+            timeout=10
+        )
+        if response.status_code == 200:
+            return response.json().get("session_id")
+        return None
+    except Exception as e:
+        print(f"Error creating conversation: {e}")
+        return None
+
+
+def clear_conversation(session_id):
+    """Clear a conversation session"""
+    try:
+        response = requests.delete(
+            f"{BACKEND_URL}/conversation/{session_id}",
+            timeout=10
+        )
+        return response.status_code == 200
+    except Exception as e:
+        print(f"Error clearing conversation: {e}")
+        return False
+
+
 # Main app
 def main():
+    # Initialize session state
+    if 'session_id' not in st.session_state:
+        st.session_state['session_id'] = None
+    
+    if 'conversation_history' not in st.session_state:
+        st.session_state['conversation_history'] = []
+    
+    if 'query_count' not in st.session_state:
+        st.session_state['query_count'] = 0
+
     # Header
     st.markdown('<h1 class="main-header">🏠 Property Search RAG System</h1>', unsafe_allow_html=True)
+    st.markdown('<p style="text-align: center; color: #666;">💬 Now with Conversational Memory!</p>', unsafe_allow_html=True)
 
     # Check backend health
     if not check_backend_health():
@@ -129,6 +187,43 @@ def main():
     # Sidebar
     with st.sidebar:
         st.header("⚙️ Settings")
+
+        # Conversation Management
+        st.markdown("### 💬 Conversation")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🆕 New Chat", use_container_width=True):
+                # Create new conversation
+                new_session_id = create_new_conversation()
+                if new_session_id:
+                    st.session_state['session_id'] = new_session_id
+                    st.session_state['conversation_history'] = []
+                    st.session_state['query_count'] = 0
+                    if 'last_result' in st.session_state:
+                        del st.session_state['last_result']
+                    st.success("Started new conversation!")
+                    st.rerun()
+        
+        with col2:
+            if st.button("🗑️ Clear", use_container_width=True):
+                if st.session_state.get('session_id'):
+                    if clear_conversation(st.session_state['session_id']):
+                        st.session_state['session_id'] = None
+                        st.session_state['conversation_history'] = []
+                        st.session_state['query_count'] = 0
+                        if 'last_result' in st.session_state:
+                            del st.session_state['last_result']
+                        st.success("Conversation cleared!")
+                        st.rerun()
+
+        # Show conversation status
+        if st.session_state.get('session_id'):
+            st.info(f"🔗 Active Session\n\n{st.session_state['query_count']} messages")
+        else:
+            st.warning("No active conversation")
+
+        st.markdown("---")
 
         # Number of results
         n_results = st.slider("Number of results", min_value=1, max_value=20, value=5)
@@ -168,23 +263,39 @@ def main():
             st.metric("Total Properties", f"{stats.get('total_documents', 0):,}")
 
     # Main content
-    st.markdown("### 💬 Ask me anything about properties!")
+    st.markdown("### 💬 Chat with the Property Assistant")
+    
+    # Show conversation history in an expander
+    if st.session_state.get('conversation_history'):
+        with st.expander(f"📜 Conversation History ({len(st.session_state['conversation_history'])} messages)", expanded=False):
+            for msg in st.session_state['conversation_history']:
+                role = msg.get('role', 'user')
+                content = msg.get('content', '')
+                
+                if role == 'user':
+                    st.markdown(f"**👤 You:** {content}")
+                else:
+                    st.markdown(f"**🤖 Assistant:** {content}")
+                st.markdown("---")
 
     # Example queries
-    with st.expander("📝 Example Queries"):
+    with st.expander("📝 Example Queries & Follow-ups"):
         st.markdown("""
+        **Initial Queries:**
         - What's the average price of 3 bedroom homes?
         - Find properties under £1000 with 2+ bathrooms
-        - Which area has the highest crime score?
-        - Show me the cheapest studio apartments
-        - Compare prices between terraced and detached houses
-        - What are the most expensive properties in London?
-        - Find 2 bedroom apartments with low flood risk
+        - Show me studio apartments in London
+        
+        **Follow-up Queries (with context):**
+        - What about cheaper ones? *(continues previous query)*
+        - Show me those in Manchester instead *(references previous results)*
+        - How about 2 bedrooms? *(refines previous search)*
+        - Which of those have the lowest crime score? *(analyzes previous results)*
         """)
 
     # Query input
     query = st.text_input(
-        "Enter your question:",
+        "Ask me anything about properties:",
         placeholder="e.g., What's the average price of 2 bedroom apartments?",
         key="query_input"
     )
@@ -192,34 +303,63 @@ def main():
     # Quick action buttons
     col1, col2, col3 = st.columns(3)
     with col1:
-        if st.button("🔍 Search", type="primary", use_container_width=True):
-            if query:
-                with st.spinner("Searching properties..."):
-                    # Build filters
-                    filters = {}
-                    if price_filter and min_price is not None:
-                        filters['min_price'] = min_price
-                    if price_filter and max_price is not None:
-                        filters['max_price'] = max_price
-                    if bedroom_filter and bedrooms is not None:
-                        filters['bedrooms'] = bedrooms
-                    if bathroom_filter and bathrooms is not None:
-                        filters['bathrooms'] = bathrooms
-
-                    # Execute query
-                    result = query_properties(query, n_results, filters if filters else None)
-
-                    if "error" in result:
-                        st.error(f"Error: {result['error']}")
-                    else:
-                        st.session_state['last_result'] = result
-            else:
-                st.warning("Please enter a query first!")
-
+        search_button = st.button("🔍 Search", type="primary", use_container_width=True)
+    
     with col2:
-        if st.button("🔄 Clear", use_container_width=True):
-            st.session_state.clear()
-            st.rerun()
+        if st.button("📜 View History", use_container_width=True):
+            if st.session_state.get('session_id'):
+                history_data = get_conversation_history(st.session_state['session_id'])
+                if history_data:
+                    st.session_state['show_history'] = True
+
+    if search_button:
+        if query:
+            with st.spinner("Searching properties..."):
+                # Build filters
+                filters = {}
+                if price_filter and min_price is not None:
+                    filters['min_price'] = min_price
+                if price_filter and max_price is not None:
+                    filters['max_price'] = max_price
+                if bedroom_filter and bedrooms is not None:
+                    filters['bedrooms'] = bedrooms
+                if bathroom_filter and bathrooms is not None:
+                    filters['bathrooms'] = bathrooms
+
+                # Execute query with session ID
+                result = query_properties(
+                    query, 
+                    n_results, 
+                    filters if filters else None,
+                    session_id=st.session_state.get('session_id')
+                )
+
+                if "error" in result:
+                    st.error(f"Error: {result['error']}")
+                else:
+                    # Update session info
+                    st.session_state['session_id'] = result.get('session_id')
+                    st.session_state['query_count'] += 2  # User + assistant
+                    
+                    # Add to local history
+                    st.session_state['conversation_history'].append({
+                        'role': 'user',
+                        'content': query
+                    })
+                    st.session_state['conversation_history'].append({
+                        'role': 'assistant',
+                        'content': result.get('answer', 'No answer')
+                    })
+                    
+                    st.session_state['last_result'] = result
+                    
+                    # Show context indicator
+                    if result.get('has_conversation_context'):
+                        st.info("💡 Using conversation context from previous messages")
+                    
+                    st.rerun()
+        else:
+            st.warning("Please enter a query first!")
 
     # Display results
     if 'last_result' in st.session_state:
@@ -271,7 +411,8 @@ def main():
     st.markdown("---")
     st.markdown(
         "<div style='text-align: center; color: #666;'>"
-        "Property RAG System | Powered by ChromaDB, Sentence-Transformers & Google Gemini"
+        "Property RAG System v2.0 | 💬 With Conversational Memory | "
+        "Powered by ChromaDB, Sentence-Transformers & Google Gemini"
         "</div>",
         unsafe_allow_html=True
     )
