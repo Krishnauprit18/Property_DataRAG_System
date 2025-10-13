@@ -625,21 +625,20 @@ main.py          → API layer
 - Distributed processing needed
 - Real-time streaming required
 
-### 8.8 Deployment Strategy: Docker over Bare Metal
+### 8.8 Deployment Strategy: Local Development Setup
 
-**Decision:** Provide Docker deployment option
+**Decision:** Local development setup for direct execution
 
 **Rationale:**
-1. **Consistency:** Same environment across dev/prod
-2. **Portability:** Deploy anywhere (AWS, GCP, Azure, local)
-3. **Isolation:** No dependency conflicts
-4. **Scalability:** Easy horizontal scaling
-5. **CI/CD:** Simplified deployment pipeline
+1. **Simplicity:** Direct Python execution without containers
+2. **Fast Development:** Quick iteration and debugging
+3. **Resource Efficiency:** No containerization overhead
+4. **Easy Setup:** Standard Python virtual environment
 
-**Deployment Options Provided:**
-- Local development: Manual setup
-- Docker Compose: Single-command deployment
-- Cloud-ready: ECS, Cloud Run, ACI configs
+**Deployment Method:**
+- Backend: Direct FastAPI execution (`python backend/main.py`)
+- Frontend: Streamlit application (`streamlit run frontend/app.py`)
+- Database: Local ChromaDB persistence
 
 ---
 
