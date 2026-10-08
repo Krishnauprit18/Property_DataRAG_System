@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 import logging
 import os
 from dotenv import load_dotenv
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from vector_store import PropertyVectorStore
 from llm_handler import LLMHandler
@@ -96,6 +97,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 # Initialize components
 vector_store = None
