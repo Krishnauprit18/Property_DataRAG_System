@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: data-ingestion-job
+  namespace: property-rag
+  labels:
+    app: data-ingestion
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app: data-ingestion
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+      containers:
+        - name: ingestor
+          image: property-rag-backend:v1
+          imagePullPolicy: IfNotPresent
+          command: ["python", "/app/scripts/load_data.py"]
+          volumeMounts:
+            - name: chroma-storage
+              mountPath: /app/backend/chroma_db
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1.5Gi"
+            limits:
+              cpu: "2000m"
+              memory: "4Gi"
+      volumes:
+        - name: chroma-storage
+          persistentVolumeClaim:
+            claimName: chroma-pvc

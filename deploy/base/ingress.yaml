@@ -1,0 +1,38 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: property-rag-ingress
+  namespace: property-rag
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "180"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "180"
+    nginx.ingress.kubernetes.io/websocket-services: "frontend-svc"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.property-rag.local
+        - frontend.property-rag.local
+      secretName: property-rag-tls
+  rules:
+    - host: api.property-rag.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-svc
+                port:
+                  number: 8000
+    - host: frontend.property-rag.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-svc
+                port:
+                  number: 8501
