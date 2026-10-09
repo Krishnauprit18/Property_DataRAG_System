@@ -1,5 +1,6 @@
 global:
   namespace: property-rag
+
 backend:
   replicaCount: 1
   image:
@@ -11,7 +12,7 @@ backend:
     port: 8000
   resources:
     limits:
-      cpu: 100m
+      cpu: 1000m
       memory: 1536Mi
     requests:
       cpu: 250m
@@ -23,6 +24,7 @@ backend:
     debug: "False"
     port: "8000"
   secretName: property-rag-secrets
+
 frontend:
   replicaCount: 1
   image:
@@ -52,13 +54,15 @@ persistence:
     name: analytics-pvc
     size: 2Gi
     accessMode: ReadWriteOnce
+
 ingress:
   enabled: true
   className: nginx
   annotations:
-    nginx.ingress.kubernetes.io/proxy-body-size: "50m"                                                                  
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"                                                               
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"                                                               
+    cert-manager.io/cluster-issuer: property-rag-ca-issuer
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
     nginx.ingress.kubernetes.io/websocket-services: "frontend-service"
   tls:
     enabled: true
