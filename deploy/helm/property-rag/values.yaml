@@ -1,0 +1,68 @@
+global:
+  namespace: property-rag
+backend:
+  replicaCount: 1
+  image:
+    repository: property-rag-backend
+    tag: v1
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    limits:
+      cpu: 100m
+      memory: 1536Mi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  env:
+    chromaPersistDir: /data/chroma
+    analyticsDir: /data/analytics
+    environment: production
+    debug: "False"
+    port: "8000"
+  secretName: property-rag-secrets
+frontend:
+  replicaCount: 1
+  image:
+    repository: property-rag-frontend
+    tag: v1
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8501
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  env:
+    apiBaseUrl: http://backend-service:8000
+
+persistence:
+  storageClass: standard
+  chroma:
+    name: chroma-pvc
+    size: 10Gi
+    accessMode: ReadWriteOnce
+  analytics:
+    name: analytics-pvc
+    size: 2Gi
+    accessMode: ReadWriteOnce
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"                                                                  
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"                                                               
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"                                                               
+    nginx.ingress.kubernetes.io/websocket-services: "frontend-service"
+  tls:
+    enabled: true
+    secretName: property-rag-tls
+  hosts:
+    api: api.property-rag.local
+    frontend: frontend.property-rag.local

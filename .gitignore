@@ -110,3 +110,7 @@ site/
 .cache/
 *.pyc
 *.pyo
+
+# Cosign private key
+deploy/cosign/cosign.key
+deploy/packages/*.tgz

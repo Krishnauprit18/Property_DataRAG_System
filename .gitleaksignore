@@ -1,0 +1,3 @@
+# Gitleaks ignore list for baseline historical commits                                                                  
+  b629bb305537ce5671476668b91a2bc43d51f51a:ALL_ERRORS_FIXED.md:gcp-api-key:90                                             
+  b629bb305537ce5671476668b91a2bc43d51f51a:evaluation/test_queries.json:generic-api-key:108
