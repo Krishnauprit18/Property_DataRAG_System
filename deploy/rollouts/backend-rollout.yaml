@@ -68,6 +68,8 @@ spec:
               value: "production"
             - name: DEBUG
               value: "False"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "jaeger-service.monitoring.svc.cluster.local:4317"
             - name: GEMINI_API_KEY
               valueFrom:
                 secretKeyRef:
