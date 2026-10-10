@@ -81,6 +81,32 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down Property RAG System...")
 
 
+# ==============================================================================
+# OpenTelemetry APM & Distributed Tracing Setup
+# ==============================================================================
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import Resource
+
+otel_endpoint = os.getenv('OTEL_EXPORTER_OTLP_ENDPOINT', 'jaeger-service.monitoring.svc.cluster.local:4317')
+resource = Resource.create({
+    'service.name': 'property-rag-backend',
+    'deployment.environment': os.getenv('ENVIRONMENT', 'production')
+})
+provider = TracerProvider(resource=resource)
+try:
+    otlp_exporter = OTLPSpanExporter(endpoint=otel_endpoint, insecure=True)
+    provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
+    trace.set_tracer_provider(provider)
+    tracer = trace.get_tracer('property-rag-tracer')
+    logger.info(f"✅ OpenTelemetry Tracer initialized successfully pointing to {otel_endpoint}")
+except Exception as e:
+    tracer = trace.get_tracer('property-rag-fallback')
+    logger.warning(f"⚠️ OTel Tracer initialization warning: {e}")
+
+
 # Initialize FastAPI app with lifespan
 app = FastAPI(
     title="Property RAG System API",
@@ -195,109 +221,120 @@ async def query_properties(request: QueryRequest):
     success = False
     error_msg = None
 
-    try:
-        # Get or create conversation session
-        session_id, session = conversation_manager.get_or_create_session(request.session_id)
-        logger.info(f"Using session: {session_id}")
+    with tracer.start_as_current_span("query_request") as root_span:
+        root_span.set_attribute("query.text", request.query)
+        root_span.set_attribute("query.n_results", request.n_results)
+        if request.session_id:
+            root_span.set_attribute("query.session_id", request.session_id)
 
-        # Build filters
-        filters = {}
-        if request.min_price is not None:
-            filters['min_price'] = request.min_price
-        if request.max_price is not None:
-            filters['max_price'] = request.max_price
-        if request.bedrooms is not None:
-            filters['bedrooms'] = request.bedrooms
-        if request.bathrooms is not None:
-            filters['bathrooms'] = request.bathrooms
+        try:
+            # Get or create conversation session
+            session_id, session = conversation_manager.get_or_create_session(request.session_id)
+            logger.info(f"Using session: {session_id}")
+            root_span.set_attribute("session.id", session_id)
 
-        # Get conversation context
-        try:
-            conversation_context = conversation_manager.get_session_context(session_id)
-        except Exception as e:
-            logger.error(f"Error getting session context: {e}")
-            raise HTTPException(status_code=500, detail=f"Error getting session context: {e}")
-        
-        try:
-            conversation_history = conversation_manager.get_conversation_history(session_id, limit=10)
-        except Exception as e:
-            logger.error(f"Error getting conversation history: {e}")
-            raise HTTPException(status_code=500, detail=f"Error getting conversation history: {e}")
+            # Build filters
+            filters = {}
+            if request.min_price is not None:
+                filters['min_price'] = request.min_price
+            if request.max_price is not None:
+                filters['max_price'] = request.max_price
+            if request.bedrooms is not None:
+                filters['bedrooms'] = request.bedrooms
+            if request.bathrooms is not None:
+                filters['bathrooms'] = request.bathrooms
 
-        # Add user message to conversation
-        try:
+            # Get conversation context
+            try:
+                conversation_context = conversation_manager.get_session_context(session_id)
+            except Exception as e:
+                logger.error(f"Error getting session context: {e}")
+                raise HTTPException(status_code=500, detail=f"Error getting session context: {e}")
+            
+            try:
+                conversation_history = conversation_manager.get_conversation_history(session_id, limit=10)
+            except Exception as e:
+                logger.error(f"Error getting conversation history: {e}")
+                raise HTTPException(status_code=500, detail=f"Error getting conversation history: {e}")
+
+            # Add user message to conversation
+            try:
+                conversation_manager.add_message_to_session(
+                    session_id,
+                    'user',
+                    request.query,
+                    metadata={
+                        'filters': filters if filters else {},
+                        'n_results': request.n_results
+                    }
+                )
+            except Exception as e:
+                logger.error(f"Error adding user message: {e}")
+                raise HTTPException(status_code=500, detail=f"Error adding user message: {e}")
+
+            # Execute query with conversation context
+            result = rag_pipeline.query(
+                user_query=request.query,
+                n_results=request.n_results,
+                filters=filters if filters else None,
+                conversation_history=conversation_history,
+                conversation_context=conversation_context
+            )
+
+            # Add assistant response to conversation
             conversation_manager.add_message_to_session(
                 session_id,
-                'user',
-                request.query,
+                'assistant',
+                result['answer'],
                 metadata={
-                    'filters': filters if filters else {},
-                    'n_results': request.n_results
+                    'num_results': result.get('num_results', 0),
+                    'filters_applied': result.get('filters_applied', {})
                 }
             )
+
+            success = True
+            response_time = time.time() - start_time
+            root_span.set_attribute("response.time_seconds", response_time)
+            root_span.set_attribute("response.num_results", result.get('num_results', 0))
+
+            # Log analytics
+            analytics.log_query(
+                query=request.query,
+                response_time=response_time,
+                success=True,
+                num_results=result.get('num_results', 0),
+                filters=filters if filters else None
+            )
+
+            monitor.record_request(response_time, success=True)
+
+            # Build response
+            response = QueryResponse(
+                **result,
+                session_id=session_id,
+                has_conversation_context=conversation_context.get('has_history', False)
+            )
+
+            return response
+
         except Exception as e:
-            logger.error(f"Error adding user message: {e}")
-            raise HTTPException(status_code=500, detail=f"Error adding user message: {e}")
+            root_span.record_exception(e)
+            root_span.set_attribute("error", True)
+            logger.error(f"Error processing query: {e}")
+            response_time = time.time() - start_time
+            error_msg = str(e)
 
-        # Execute query with conversation context
-        result = rag_pipeline.query(
-            user_query=request.query,
-            n_results=request.n_results,
-            filters=filters if filters else None,
-            conversation_history=conversation_history,
-            conversation_context=conversation_context
-        )
+            # Log failed query
+            analytics.log_query(
+                query=request.query,
+                response_time=response_time,
+                success=False,
+                error=error_msg
+            )
 
-        # Add assistant response to conversation
-        conversation_manager.add_message_to_session(
-            session_id,
-            'assistant',
-            result['answer'],
-            metadata={
-                'num_results': result.get('num_results', 0),
-                'filters_applied': result.get('filters_applied', {})
-            }
-        )
+            monitor.record_request(response_time, success=False)
 
-        success = True
-        response_time = time.time() - start_time
-
-        # Log analytics
-        analytics.log_query(
-            query=request.query,
-            response_time=response_time,
-            success=True,
-            num_results=result.get('num_results', 0),
-            filters=filters if filters else None
-        )
-
-        monitor.record_request(response_time, success=True)
-
-        # Build response
-        response = QueryResponse(
-            **result,
-            session_id=session_id,
-            has_conversation_context=conversation_context.get('has_history', False)
-        )
-
-        return response
-
-    except Exception as e:
-        logger.error(f"Error processing query: {e}")
-        response_time = time.time() - start_time
-        error_msg = str(e)
-
-        # Log failed query
-        analytics.log_query(
-            query=request.query,
-            response_time=response_time,
-            success=False,
-            error=error_msg
-        )
-
-        monitor.record_request(response_time, success=False)
-
-        raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/analytics")
