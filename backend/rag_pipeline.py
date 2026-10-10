@@ -8,6 +8,9 @@ import logging
 from vector_store import PropertyVectorStore
 from llm_handler import LLMHandler
 from global_analytics import GlobalAnalytics
+from opentelemetry import trace
+
+tracer = trace.get_tracer("property-rag-tracer")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -69,14 +72,18 @@ class PropertyRAGPipeline:
 
         # Step 2: Retrieve relevant properties using vector search
         try:
-            search_results = self.vector_store.search(
-                query=enhanced_query,
-                n_results=n_results,
-                filters=enhanced_filters
-            )
+            with tracer.start_as_current_span("vector_search") as span:
+                span.set_attribute("search.query", enhanced_query)
+                span.set_attribute("search.n_results", n_results)
+                search_results = self.vector_store.search(
+                    query=enhanced_query,
+                    n_results=n_results,
+                    filters=enhanced_filters
+                )
 
-            retrieved_properties = search_results['metadatas']
-            logger.info(f"Retrieved {len(retrieved_properties)} properties")
+                retrieved_properties = search_results['metadatas']
+                span.set_attribute("search.retrieved_count", len(retrieved_properties))
+                logger.info(f"Retrieved {len(retrieved_properties)} properties")
 
         except Exception as e:
             logger.error(f"Error during retrieval: {e}")
@@ -98,15 +105,18 @@ class PropertyRAGPipeline:
 
         # Step 3: Generate response using LLM with conversation context and analytics summary
         try:
-            answer = self.llm_handler.generate_response(
-                query=user_query,
-                retrieved_properties=retrieved_properties,
-                context_stats=stats,
-                conversation_history=conversation_history,
-                conversation_context=conversation_context,
-                analytics_summary=(self.analytics.summarize(analytics_result) if analytics_result else None),
-                citations=citations
-            )
+            with tracer.start_as_current_span("llm_generation") as span:
+                span.set_attribute("llm.query", user_query)
+                span.set_attribute("llm.retrieved_properties_count", len(retrieved_properties))
+                answer = self.llm_handler.generate_response(
+                    query=user_query,
+                    retrieved_properties=retrieved_properties,
+                    context_stats=stats,
+                    conversation_history=conversation_history,
+                    conversation_context=conversation_context,
+                    analytics_summary=(self.analytics.summarize(analytics_result) if analytics_result else None),
+                    citations=citations
+                )
         except Exception as e:
             logger.error(f"Error generating response: {e}")
             answer = "Sorry, I encountered an error while generating the response."
