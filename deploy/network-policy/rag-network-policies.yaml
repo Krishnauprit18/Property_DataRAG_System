@@ -1,0 +1,109 @@
+apiVersion: networking.k8s.io/v1 
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: property-rag 
+spec: 
+  podSelector: {}
+  policyTypes: 
+    - Ingress 
+--- 
+apiVersion: networking.k8s.io/v1 
+kind: NetworkPolicy 
+metadata: 
+  name: allow-frontend
+  namespace: property-rag 
+spec: 
+  podSelector: 
+    matchLabels: 
+      app: frontend
+  policyTypes: 
+    - Ingress
+    - Egress 
+  ingress: 
+    - from: 
+        - namespaceSelector: 
+            matchLabels: 
+              kubernetes.io/metadata.name: ingress-nginx 
+      ports: 
+        - protocol: TCP 
+          port: 8501 
+    - from: 
+        - podSelector: {} 
+      ports: 
+        - protocol: TCP 
+          port: 8501 
+  egress:
+    - to:
+        - podSelector: 
+            matchLabels: 
+              app: backend 
+      ports:
+        - protocol: TCP 
+          port: 8000
+    - to: 
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system 
+          podSelector: 
+            matchLabels: 
+              k8s-app: kube-dns
+      ports: 
+        - protocol: UDP 
+          port: 53
+--- 
+apiVersion: networking.k8s.io/v1 
+kind: NetworkPolicy 
+metadata: 
+  name: allow-backend
+  namespace: property-rag 
+spec: 
+  podSelector:
+    matchLabels: 
+      app: backend 
+  policyTypes: 
+    - Ingress 
+    - Egress
+  ingress:
+    - from: 
+        - podSelector: 
+            matchLabels: 
+                app: frontend
+      ports: 
+        - protocol: TCP 
+          port: 8000
+    - from: 
+        - namespaceSelector:
+            matchLabels: 
+              kubernetes.io/metadata.name: ingress-nginx
+      ports: 
+        - protocol: TCP 
+          port: 8000
+    - from: 
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports: 
+        - protocol: TCP 
+          port: 8000
+  egress:
+    - to: 
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system 
+          podSelector: 
+            matchLabels:
+              k8s-app: kube-dns
+      ports: 
+        - protocol: UDP
+          port: 53
+    - to: 
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring 
+      ports: 
+        - protocol: TCP
+          port: 4317
+    - ports: 
+        - protocol: TCP 
+          port: 443
