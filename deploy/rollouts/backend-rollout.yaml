@@ -1,0 +1,120 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: backend-rollout
+  namespace: property-rag
+  labels:
+    app: backend
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: backend
+  strategy:
+    canary:
+      canaryService: backend-canary-service
+      stableService: backend-svc
+      trafficRouting:
+        nginx:
+          stableIngress: property-rag-ingress
+      steps:
+        - setWeight: 20
+        - pause: {duration: 15s}
+        - analysis:
+            templates:
+              - templateName: backend-health-check
+        - setWeight: 50
+        - pause: {duration: 10s}
+  template:
+    metadata:
+      labels:
+        app: backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: property-rag-cluster-worker
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+      containers:
+        - name: backend
+          image: property-rag-backend:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: PORT
+              value: "8000"
+            - name: BACKEND_PORT
+              value: "8000"
+            - name: BACKEND_HOST
+              value: "0.0.0.0"
+            - name: HF_HOME
+              value: "/home/appuser/.cache/huggingface"
+            - name: SENTENCE_TRANSFORMERS_HOME
+              value: "/home/appuser/.cache/huggingface"
+            - name: CHROMA_PERSIST_DIRECTORY
+              value: "/app/backend/chroma_db"
+            - name: ANALYTICS_DIRECTORY
+              value: "/app/backend/analytics"
+            - name: ENVIRONMENT
+              value: "production"
+            - name: DEBUG
+              value: "False"
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: property-rag-secrets
+                  key: GEMINI_API_KEY
+                  optional: true
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 2048Mi
+            requests:
+              cpu: 250m
+              memory: 512Mi
+          volumeMounts:
+            - name: chroma-storage
+              mountPath: /app/backend/chroma_db
+            - name: chroma-storage
+              mountPath: /data/chroma
+            - name: analytics-storage
+              mountPath: /app/backend/analytics
+            - name: analytics-storage
+              mountPath: /data/analytics
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 20
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 25
+            periodSeconds: 15
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+      volumes:
+        - name: chroma-storage
+          persistentVolumeClaim:
+            claimName: chroma-pvc
+        - name: analytics-storage
+          persistentVolumeClaim:
+            claimName: analytics-pvc
